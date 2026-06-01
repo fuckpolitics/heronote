@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Orbitron", "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "Rajdhani", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* База — глубокий ночной кобальт */
+  --color-ink-950: #04060f;
+  --color-ink-900: #070b18;
+  --color-ink-850: #0a1022;
+  --color-ink-800: #0e1630;
+  --color-ink-700: #16203f;
+  --color-ink-600: #2a3a66;
+  --color-ink-500: #5b6e9e;
+  --color-ink-400: #8a9bc7;
+  --color-ink-300: #b6c4e6;
+  --color-ink-200: #d7e0f4;
+  --color-ink-100: #eef3ff;
+
+  /* Неон System */
+  --color-sys-cyan: #22d3ee;
+  --color-sys-blue: #2f6bff;
+  --color-sys-azure: #38bdf8;
+  --color-sys-violet: #8b5cf6;
+  --color-sys-purple: #a855f7;
+  --color-sys-magenta: #d946ef;
+  --color-sys-gold: #f5b942;
+  --color-sys-rose: #fb5c8a;
+}
+
+:root {
+  color-scheme: dark;
+  --glow: 64, 168, 255;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-950);
+  color: #dbe6ff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+/* Фон: кобальтовое сияние + сетка подземелья */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(60rem 60rem at 12% -10%, rgba(47, 107, 255, 0.22), transparent 58%),
+    radial-gradient(52rem 52rem at 100% -6%, rgba(168, 85, 247, 0.18), transparent 55%),
+    radial-gradient(46rem 46rem at 88% 112%, rgba(34, 211, 238, 0.14), transparent 60%),
+    radial-gradient(40rem 40rem at 18% 118%, rgba(217, 70, 239, 0.1), transparent 60%),
+    var(--color-ink-950);
+}
+.app-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(64, 168, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(64, 168, 255, 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(70% 70% at 50% 30%, #000, transparent 85%);
+}
+
+/* Компонентные классы — в слое components, чтобы утилиты Tailwind
+   (fixed, absolute, relative и т.п.) всегда перекрывали их. */
+@layer components {
+
+/* ─── System Panel: угловатая неоновая рамка ─── */
+.sys-panel,
+.glass {
+  position: relative;
+  background: linear-gradient(160deg, rgba(20, 34, 72, 0.72), rgba(8, 14, 32, 0.78));
+  border: 1px solid rgba(80, 140, 255, 0.22);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 1px rgba(80, 140, 255, 0.06) inset, 0 18px 50px -28px rgba(0, 0, 0, 0.9),
+    0 0 28px -10px rgba(47, 107, 255, 0.35);
+  clip-path: polygon(
+    0 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% 100%,
+    16px 100%,
+    0 calc(100% - 16px)
+  );
+}
+.sys-panel--plain,
+.glass {
+  /* для существующих компонентов оставляем мягкие углы */
+  clip-path: none;
+  border-radius: 1rem;
+}
+.sys-panel {
+  border-radius: 0;
+}
+
+/* Тонкая верхняя неоновая линия */
+.sys-panel::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 28px;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-sys-cyan), var(--color-sys-blue), transparent);
+  opacity: 0.7;
+}
+
+.card-hover {
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(120, 180, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(120, 180, 255, 0.12) inset, 0 22px 60px -30px #000,
+    0 0 36px -8px rgba(47, 107, 255, 0.55);
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, #5eeaff, #6a8bff 45%, #b07bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.glow-text {
+  text-shadow: 0 0 14px rgba(64, 168, 255, 0.55);
+}
+
+.neon-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(80, 140, 255, 0.5), transparent);
+}
+
+/* Кнопка System */
+.btn-sys {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #eaf3ff;
+  background: linear-gradient(180deg, rgba(47, 107, 255, 0.28), rgba(47, 107, 255, 0.12));
+  border: 1px solid rgba(110, 170, 255, 0.5);
+  box-shadow: 0 0 18px -6px rgba(47, 107, 255, 0.7);
+  transition: all 0.16s ease;
+}
+.btn-sys:hover {
+  background: linear-gradient(180deg, rgba(47, 107, 255, 0.45), rgba(47, 107, 255, 0.2));
+  box-shadow: 0 0 26px -4px rgba(47, 107, 255, 0.9);
+}
+
+/* Скроллбар */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(80, 140, 255, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(80, 140, 255, 0.3);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 180, 255, 0.5);
+  background-clip: padding-box;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(90, 150, 255, 0.28);
+  background: rgba(10, 18, 40, 0.7);
+  padding: 0.62rem 0.8rem;
+  font-size: 0.9rem;
+  color: #eaf2ff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.input::placeholder {
+  color: rgba(138, 155, 199, 0.55);
+}
+.input:focus {
+  border-color: rgba(64, 168, 255, 0.8);
+  background: rgba(14, 24, 52, 0.85);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.2);
+}
+
+} /* @layer components */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.35s ease both; }
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.animate-pulse-glow { animation: pulse-glow 1.6s ease-in-out infinite; }
+
+@keyframes scan {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100%); }
+}
+.scanline {
+  position: absolute;
+  left: 0; right: 0;
+  height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(64, 168, 255, 0.08), transparent);
+  animation: scan 3.5s linear infinite;
+}
+
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }

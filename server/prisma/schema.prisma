@@ -1,0 +1,47 @@
+// Prisma schema.
+//
+// База: PostgreSQL (бесплатно на Neon). DATABASE_URL берётся из окружения.
+// Схема применяется командой `prisma db push` — отдельные миграции не нужны.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String      @id @default(cuid())
+  email     String      @unique
+  password  String
+  name      String
+  avatar    String?
+  createdAt DateTime    @default(now())
+  state     State?
+  events    FeedEvent[]
+}
+
+model FeedEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // achievement | rank | levelup | quest
+  title     String
+  detail    String?
+  icon      String?
+  color     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model State {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Весь AppState сериализуется в JSON-строку (портируется между SQLite и Postgres)
+  data      String
+  updatedAt DateTime @updatedAt
+}

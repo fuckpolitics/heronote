@@ -1,0 +1,22 @@
+# Render Blueprint — бэкенд (NestJS API).
+# При импорте репозитория на render.com этот файл всё настроит сам.
+# Нужно лишь задать DATABASE_URL (строка из Neon) в разделе Environment.
+services:
+  - type: web
+    name: system-api
+    runtime: node
+    plan: free
+    rootDir: server
+    # build: ставим зависимости, компилируем TS и создаём таблицы в БД (db push)
+    buildCommand: npm install && npm run build && npx prisma db push --skip-generate
+    startCommand: npm start
+    envVars:
+      # Строку подключения к Postgres (Neon) вставляешь вручную в дашборде
+      - key: DATABASE_URL
+        sync: false
+      # Секрет для подписи токенов — Render сгенерирует сам
+      - key: JWT_SECRET
+        generateValue: true
+      # Разрешаем запросы с любого адреса (токены в заголовке, не в cookie)
+      - key: CORS_ORIGIN
+        value: "*"
