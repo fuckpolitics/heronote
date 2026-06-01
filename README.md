@@ -67,63 +67,50 @@ npm run host                   # покажет адрес вида http://192.1
 (`src/lib/repo.ts` / `src/lib/api.ts`) — поэтому смена localStorage ↔ API
 не затрагивает UI.
 
-## Деплой в интернет — бесплатно (Neon + Render + Vercel)
+## Деплой в интернет — бесплатно, БЕЗ банковской карты (Neon + Vercel)
 
-Всё бесплатно, без своего сервера и без банковской карты. Вход во все сервисы — через GitHub.
-
-> Минус бесплатного бэкенда на Render: после ~15 минут простоя он «засыпает»,
-> и первый запрос потом грузится ~30 секунд. Дальше быстро.
-
-### Шаг 0. Залить код на GitHub
-
-Создай репозиторий на github.com и запушь проект:
-
-```bash
-git init
-git add .
-git commit -m "system app"
-git branch -M main
-git remote add origin https://github.com/ТВОЙ_ЛОГИН/НАЗВАНИЕ.git
-git push -u origin main
-```
+Всё бесплатно и без карты. Делаем **две отдельные привязки на Vercel** из одного репозитория:
+бэкенд (папка `server/`, работает как serverless-функция) и фронтенд (корень репозитория).
+База — Neon. Вход во все сервисы — через GitHub.
 
 ### Шаг 1. База данных — Neon
 
-1. Зайди на **neon.tech** → Sign up with GitHub.
-2. Create project (имя любое, регион — ближайший).
-3. На экране **Connection string** скопируй строку вида
-   `postgresql://...@...neon.tech/...?sslmode=require`. Сохрани её — это `DATABASE_URL`.
+1. **neon.tech** → Sign up with GitHub → Create project.
+2. Скопируй **Connection string** — строку вида
+   `postgresql://...@...neon.tech/neondb?sslmode=require`. Это `DATABASE_URL`
+   (используй **прямой** host, без `-pooler`).
 
-### Шаг 2. Бэкенд — Render
+### Шаг 2. Бэкенд (API) — Vercel, проект №1
 
-1. Зайди на **render.com** → Sign up with GitHub.
-2. **New → Blueprint** → выбери свой GitHub-репозиторий.
-   Render прочитает `render.yaml` и создаст сервис `system-api` сам.
-3. В разделе **Environment** добавь переменную `DATABASE_URL` =
-   строка из Neon (шаг 1). `JWT_SECRET` Render сгенерит сам.
-4. Нажми **Apply / Deploy**. Дождись статуса **Live**.
-5. Скопируй адрес сервиса вида `https://system-api-xxxx.onrender.com` — это адрес API.
+1. **vercel.com** → Add New → **Project** → выбери репозиторий `heronote`.
+2. **Root Directory** → нажми Edit и выбери папку **`server`**. Framework: **Other**.
+3. **Environment Variables** добавь:
+   - `DATABASE_URL` = строка из Neon (шаг 1)
+   - `JWT_SECRET` = любая длинная случайная строка
+   - `CORS_ORIGIN` = `*`
+4. **Deploy**. Получишь адрес вида `https://heronote-api.vercel.app`.
 
-Проверка: открой `https://system-api-xxxx.onrender.com/feed` — должно вернуть
-`{"statusCode":401,...}` (это норма: значит сервер жив, просто нужен токен).
+Проверка: открой `https://heronote-api.vercel.app/feed` — ответ `{"statusCode":401,...}`
+означает, что API работает (просто нужен токен).
 
-### Шаг 3. Фронтенд — Vercel
+### Шаг 3. Фронтенд — Vercel, проект №2
 
-1. Зайди на **vercel.com** → Sign up with GitHub.
-2. **Add New → Project** → выбери тот же репозиторий. Framework определится как **Vite**.
-3. В **Environment Variables** добавь:
-   `VITE_API_URL` = адрес API из шага 2 (например `https://system-api-xxxx.onrender.com`).
-4. **Deploy**. Через минуту получишь адрес вида `https://твой-проект.vercel.app` — это и есть сайт.
+1. Снова Add New → **Project** → тот же репозиторий `heronote`.
+2. **Root Directory** оставь корнем репозитория. Framework определится как **Vite**.
+3. **Environment Variables** → `VITE_API_URL` = адрес API из шага 2
+   (например `https://heronote-api.vercel.app`, **без** `/` в конце).
+4. **Deploy** → получишь адрес сайта `https://heronote.vercel.app`.
 
-Готово — открывай ссылку Vercel, регистрируйся и пользуйся. Любой `git push` в `main`
-будет автоматически пересобирать и фронт (Vercel), и бэкенд (Render).
+Готово. Любой `git push` в `main` автоматически пересобирает оба проекта.
 
 ### Если что-то не работает
 
-- **Ошибки сети / не логинит** → проверь, что `VITE_API_URL` на Vercel = реальный адрес Render
-  (без `/` в конце), и пересобери проект на Vercel (Redeploy).
-- **Бэкенд падает при старте** → почти всегда неверный `DATABASE_URL`. Проверь строку из Neon.
-- **Первый заход долгий** → бэкенд просыпался после простоя, это норма для free-плана.
+- **Не логинит / ошибки сети** → проверь `VITE_API_URL` (точный адрес API, без `/` в конце),
+  затем Redeploy фронтенда.
+- **API отвечает 500** → почти всегда неверный `DATABASE_URL`. Проверь строку из Neon
+  (должна заканчиваться на `?sslmode=require`).
+- **Таблиц нет в базе** → они создаются на этапе сборки бэкенда (`prisma db push`).
+  Передеплой проект №1 (Redeploy) после того, как задан правильный `DATABASE_URL`.
 
 ## Стек данных в игре
 

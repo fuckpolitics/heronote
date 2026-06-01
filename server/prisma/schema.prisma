@@ -4,7 +4,9 @@
 // Схема применяется командой `prisma db push` — отдельные миграции не нужны.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // native — для локали; rhel-* — для рантайма Vercel (serverless на AWS Lambda)
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
