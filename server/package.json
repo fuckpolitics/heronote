@@ -4,7 +4,7 @@
   "description": "Backend для трекера System (NestJS + Prisma)",
   "private": true,
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && node ./scripts/vercel-build.js",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
     "build": "prisma generate && tsc -p tsconfig.json",
