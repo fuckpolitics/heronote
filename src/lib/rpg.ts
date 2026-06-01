@@ -81,7 +81,9 @@ export const RANKS = ["E", "D", "C", "B", "A", "S", "SS", "SSS"] as const;
 export type HunterRank = (typeof RANKS)[number];
 
 export function rankFromTotalLevel(total: number): HunterRank {
-  const idx = Math.min(RANKS.length - 1, Math.floor(total / 6));
+  // total теперь начинается с 1 (новичок). +4 сохраняет прежний темп рангов:
+  // E на старте, D после первого уровня характеристики и т.д.
+  const idx = Math.min(RANKS.length - 1, Math.max(0, Math.floor((total + 4) / 6)));
   return RANKS[idx];
 }
 
@@ -126,13 +128,16 @@ export function computeStats(
       bonus[k] = (bonus[k] ?? 0) + (g.stats[k] ?? 0);
     });
   });
-  let totalLevel = 0;
+  let sumBase = 0;
   let power = 0;
   CATEGORIES.forEach((c) => {
     total[c.key] = base[c.key] + bonus[c.key];
-    totalLevel += base[c.key];
+    sumBase += base[c.key];
     power += total[c.key];
   });
+  // Общий уровень Охотника: новичок = 1, дальше растёт с каждым уровнем
+  // характеристики (а не сумма пяти стартовых единиц = 5).
+  const totalLevel = sumBase - (CATEGORIES.length - 1);
   return { base, bonus, total, totalLevel, power: power * 10 };
 }
 
