@@ -1,14 +1,14 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb",
-        "includeFiles": "node_modules/.prisma/client/**"
-      }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 30,
+      "includeFiles": "node_modules/.prisma/client/**"
     }
-  ],
-  "routes": [{ "src": "/(.*)", "dest": "api/index.ts" }]
+  },
+  "rewrites": [
+    { "source": "/auth/:path*", "destination": "/api/auth/:path*" },
+    { "source": "/state", "destination": "/api/state" },
+    { "source": "/feed", "destination": "/api/feed" }
+  ]
 }
