@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Loader2, RefreshCw } from "lucide-react";
-import { feedApi, type FeedItem } from "../lib/api";
+import { feedApi, FEED_REACTIONS, type FeedItem } from "../lib/api";
 import { SystemPanel } from "./SystemPanel";
 import { Avatar } from "./Avatar";
 
@@ -48,6 +48,38 @@ export function FeedView({ token, meId }: Props) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const react = useCallback(
+    (eventId: string, emoji: string) => {
+      // оптимистичное обновление
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== eventId) return it;
+          const mine = it.myReactions ?? [];
+          const has = mine.includes(emoji);
+          const reactions = { ...(it.reactions ?? {}) };
+          reactions[emoji] = Math.max(0, (reactions[emoji] ?? 0) + (has ? -1 : 1));
+          if (reactions[emoji] === 0) delete reactions[emoji];
+          return {
+            ...it,
+            reactions,
+            myReactions: has ? mine.filter((e) => e !== emoji) : [...mine, emoji],
+          };
+        }),
+      );
+      feedApi
+        .react(token, eventId, emoji)
+        .then((r) =>
+          setItems((prev) =>
+            prev.map((it) =>
+              it.id === eventId ? { ...it, reactions: r.reactions, myReactions: r.myReactions } : it,
+            ),
+          ),
+        )
+        .catch(() => load());
+    },
+    [token, load],
+  );
 
   return (
     <div className="space-y-5">
@@ -122,6 +154,27 @@ export function FeedView({ token, meId }: Props) {
                   </div>
                   <div className="mt-0.5 font-medium text-ink-100">{it.title}</div>
                   {it.detail && <div className="text-sm text-ink-400">{it.detail}</div>}
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {FEED_REACTIONS.map((emoji) => {
+                      const count = it.reactions?.[emoji] ?? 0;
+                      const active = it.myReactions?.includes(emoji) ?? false;
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => react(it.id, emoji)}
+                          className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs transition ${
+                            active
+                              ? "border-sys-cyan/50 bg-sys-cyan/15 text-white"
+                              : "border-white/8 bg-white/4 text-ink-300 hover:border-white/20 hover:text-white"
+                          }`}
+                        >
+                          <span className="text-sm leading-none">{emoji}</span>
+                          {count > 0 && <span className="tabular-nums font-semibold">{count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </motion.div>
             );

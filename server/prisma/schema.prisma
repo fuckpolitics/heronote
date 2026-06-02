@@ -26,17 +26,30 @@ model User {
 }
 
 model FeedEvent {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String // achievement | rank | levelup | quest
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // achievement | rank | levelup | quest | diary
   title     String
   detail    String?
   icon      String?
   color     String?
-  createdAt DateTime @default(now())
+  createdAt DateTime       @default(now())
+  reactions FeedReaction[]
 
   @@index([createdAt])
+}
+
+model FeedReaction {
+  id        String    @id @default(cuid())
+  eventId   String
+  event     FeedEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String
+  createdAt DateTime  @default(now())
+
+  @@unique([eventId, userId, emoji])
+  @@index([eventId])
 }
 
 model State {

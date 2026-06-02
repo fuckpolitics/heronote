@@ -61,6 +61,9 @@ async function request<T>(path: string, opts: RequestInit & { token?: string } =
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
 
+/** Доступные реакции в ленте (синхронизировано с backend) */
+export const FEED_REACTIONS = ["🔥", "💪", "👏", "⚡", "❤️"];
+
 export interface FeedItem {
   id: string;
   userId: string;
@@ -72,6 +75,14 @@ export interface FeedItem {
   icon?: string | null;
   color?: string | null;
   createdAt: string;
+  reactions?: Record<string, number>;
+  myReactions?: string[];
+}
+
+export interface ReactionResult {
+  eventId: string;
+  reactions: Record<string, number>;
+  myReactions: string[];
 }
 
 export interface FeedDraft {
@@ -87,6 +98,12 @@ export const feedApi = {
     request<FeedItem[]>(`/feed?limit=${limit}`, { token }),
   post: (token: string, event: FeedDraft) =>
     request<FeedItem>("/feed", { method: "POST", token, body: JSON.stringify(event) }),
+  react: (token: string, eventId: string, emoji: string) =>
+    request<ReactionResult>("/feed/react", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ eventId, emoji }),
+    }),
 };
 
 export const authApi = {

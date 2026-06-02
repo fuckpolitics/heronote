@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Check, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, Plus, ShieldAlert, Sparkles, Trash2, X } from "lucide-react";
 import type { CategoryKey, Quest, QuestPeriod } from "../types";
 import { CAT_MAP, CATEGORIES, QUEST_TEMPLATES, isQuestDone } from "../lib/rpg";
 import { SystemPanel } from "./SystemPanel";
 
 interface Props {
   quests: Quest[];
-  onAdd: (title: string, category: CategoryKey, period: QuestPeriod, xp: number) => void;
+  onAdd: (title: string, category: CategoryKey, period: QuestPeriod, xp: number, stake: number) => void;
   onRemove: (id: string) => void;
   onToggle: (id: string) => void;
 }
@@ -21,7 +21,7 @@ export function QuestsView({ quests, onAdd, onRemove, onToggle }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-black uppercase tracking-wider text-ink-100 glow-text">Квесты</h2>
-          <p className="text-sm text-ink-400">Выполняй задания System и качай характеристики</p>
+          <p className="text-sm text-ink-400">Выполняй задания и качай характеристики. Ставка сгорает при провале.</p>
         </div>
         <button onClick={() => setOpen((v) => !v)} className="btn-sys flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm">
           <Plus size={16} /> Новый квест
@@ -96,9 +96,20 @@ function QuestGroup({
                     {cat.name}
                   </div>
                 </div>
-                <span className="shrink-0 rounded-md px-2 py-1 font-display text-xs font-bold tabular-nums" style={{ background: `${cat.hex}1f`, color: cat.hex }}>
-                  +{q.xp} XP
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="rounded-md px-2 py-1 font-display text-xs font-bold tabular-nums" style={{ background: `${cat.hex}1f`, color: cat.hex }}>
+                    +{q.xp} XP
+                  </span>
+                  {(q.stake ?? 0) > 0 && (
+                    <span
+                      className="flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-display text-[11px] font-bold tabular-nums text-rose-300"
+                      style={{ background: "rgba(244,63,94,0.14)" }}
+                      title="Ставка: сгорит при провале за период"
+                    >
+                      <ShieldAlert size={11} /> −{q.stake}
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => onRemove(q.id)}
                   className="shrink-0 text-ink-600 opacity-0 transition hover:text-rose-300 group-hover:opacity-100"
@@ -118,17 +129,18 @@ function QuestCreator({
   onAdd,
   onClose,
 }: {
-  onAdd: (title: string, category: CategoryKey, period: QuestPeriod, xp: number) => void;
+  onAdd: (title: string, category: CategoryKey, period: QuestPeriod, xp: number, stake: number) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<CategoryKey>("sport");
   const [period, setPeriod] = useState<QuestPeriod>("daily");
   const [xp, setXp] = useState(30);
+  const [stake, setStake] = useState(0);
 
   const submit = () => {
     if (!title.trim()) return;
-    onAdd(title, category, period, xp);
+    onAdd(title, category, period, xp, stake);
     setTitle("");
   };
 
@@ -152,6 +164,15 @@ function QuestCreator({
           <input type="range" min={10} max={300} step={5} value={xp} onChange={(e) => setXp(parseInt(e.target.value))} className="flex-1" style={{ accentColor: "#f5b942" }} />
           <span className="w-20 text-right font-display font-bold tabular-nums text-sys-gold">+{xp} XP</span>
         </div>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <span className="flex items-center gap-1 font-ui text-sm text-ink-300">
+            <ShieldAlert size={14} className="text-rose-300" /> Ставка
+          </span>
+          <input type="range" min={0} max={100} step={5} value={stake} onChange={(e) => setStake(parseInt(e.target.value))} className="flex-1" style={{ accentColor: "#fb5c8a" }} />
+          <span className="w-20 text-right font-display font-bold tabular-nums text-rose-300">
+            {stake > 0 ? `−${stake} XP` : "нет"}
+          </span>
+        </div>
       </div>
       <div className="mt-4">
         <div className="mb-2 flex items-center gap-1.5 text-xs uppercase tracking-wider text-ink-500">
@@ -163,7 +184,7 @@ function QuestCreator({
             return (
               <button
                 key={i}
-                onClick={() => onAdd(t.title, t.category, t.period, t.xp)}
+                onClick={() => onAdd(t.title, t.category, t.period, t.xp, 0)}
                 className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/4 px-2.5 py-1.5 text-xs text-ink-200 transition hover:border-white/25"
                 title={`${cat.name} · ${t.period === "daily" ? "ежедн." : "еженед."} · +${t.xp}`}
               >

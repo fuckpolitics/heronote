@@ -15,12 +15,14 @@ import type {
 import type { Repository } from "./repo";
 import { createInitialState, createMonth } from "../data/factory";
 import { uid } from "./format";
-import { ACHIEVEMENTS, periodKey } from "./rpg";
+import { ACHIEVEMENTS, periodKey, reconcilePenalties, type PenaltyItem } from "./rpg";
 
 export function useStore(repo: Repository) {
   const [state, setState] = useState<AppState | null>(null);
+  const [penaltyNotice, setPenaltyNotice] = useState<PenaltyItem[] | null>(null);
   const ready = state !== null;
   const loaded = useRef(false);
+  const reconciled = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -60,6 +62,26 @@ export function useStore(repo: Repository) {
       };
     });
   }, [state?.months, update]);
+
+  // Сверка штрафов за пропущенные квесты со ставкой — один раз после загрузки
+  useEffect(() => {
+    if (!state || reconciled.current) return;
+    reconciled.current = true;
+    const r = reconcilePenalties(state.quests, state.categoryXp, state.lastReconcileDay, state.lastReconcileWeek);
+    const markersChanged =
+      r.lastReconcileDay !== state.lastReconcileDay || r.lastReconcileWeek !== state.lastReconcileWeek;
+    if (r.penalties.length || markersChanged) {
+      update((s) => ({
+        ...s,
+        categoryXp: r.categoryXp,
+        lastReconcileDay: r.lastReconcileDay,
+        lastReconcileWeek: r.lastReconcileWeek,
+      }));
+    }
+    if (r.penalties.length) setPenaltyNotice(r.penalties);
+  }, [state, update]);
+
+  const dismissPenalty = useCallback(() => setPenaltyNotice(null), []);
 
   const active = useMemo(() => {
     if (!state) return null;
@@ -196,12 +218,21 @@ export function useStore(repo: Repository) {
 
   // ——— Квесты ———
   const addQuest = useCallback(
-    (title: string, category: CategoryKey, period: QuestPeriod, xp: number) =>
+    (title: string, category: CategoryKey, period: QuestPeriod, xp: number, stake = 0) =>
       update((s) => ({
         ...s,
         quests: [
           ...s.quests,
-          { id: uid(), title: title.trim(), category, period, xp, completions: [], createdAt: new Date().toISOString() },
+          {
+            id: uid(),
+            title: title.trim(),
+            category,
+            period,
+            xp,
+            stake: Math.max(0, stake),
+            completions: [],
+            createdAt: new Date().toISOString(),
+          },
         ],
       })),
     [update],
@@ -368,6 +399,8 @@ export function useStore(repo: Repository) {
     ready,
     state,
     active,
+    penaltyNotice,
+    dismissPenalty,
     patchProfile,
     setActiveId,
     patchMonth,

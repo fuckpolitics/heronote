@@ -2,17 +2,27 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { prisma } from "./_lib/prisma";
 import { auth, body, cors } from "./_lib/http";
 
-function shape(e: {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  detail: string | null;
-  icon: string | null;
-  color: string | null;
-  createdAt: Date;
-  user: { name: string; avatar: string | null };
-}) {
+function shape(
+  e: {
+    id: string;
+    userId: string;
+    type: string;
+    title: string;
+    detail: string | null;
+    icon: string | null;
+    color: string | null;
+    createdAt: Date;
+    user: { name: string; avatar: string | null };
+    reactions?: { emoji: string; userId: string }[];
+  },
+  meId: string,
+) {
+  const reactions: Record<string, number> = {};
+  const myReactions: string[] = [];
+  for (const r of e.reactions ?? []) {
+    reactions[r.emoji] = (reactions[r.emoji] ?? 0) + 1;
+    if (r.userId === meId) myReactions.push(r.emoji);
+  }
   return {
     id: e.id,
     userId: e.userId,
@@ -24,6 +34,8 @@ function shape(e: {
     icon: e.icon,
     color: e.color,
     createdAt: e.createdAt,
+    reactions,
+    myReactions,
   };
 }
 
@@ -39,9 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rows = await prisma.feedEvent.findMany({
       orderBy: { createdAt: "desc" },
       take: limit,
-      include: { user: { select: { name: true, avatar: true } } },
+      include: {
+        user: { select: { name: true, avatar: true } },
+        reactions: { select: { emoji: true, userId: true } },
+      },
     });
-    return res.status(200).json(rows.map(shape));
+    return res.status(200).json(rows.map((r) => shape(r, userId)));
   }
 
   if (req.method === "POST") {
@@ -62,9 +77,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         icon: icon ? String(icon).slice(0, 8) : null,
         color: color ? String(color).slice(0, 16) : null,
       },
-      include: { user: { select: { name: true, avatar: true } } },
+      include: {
+        user: { select: { name: true, avatar: true } },
+        reactions: { select: { emoji: true, userId: true } },
+      },
     });
-    return res.status(201).json(shape(e));
+    return res.status(201).json(shape(e, userId));
   }
 
   return res.status(405).json({ message: "Метод не поддерживается" });

@@ -40,6 +40,8 @@ export function migrate(raw: Partial<AppState> | null): AppState {
     trackers: raw.trackers ?? base.trackers,
     canvas: raw.canvas ?? base.canvas,
     diary: raw.diary ?? base.diary,
+    lastReconcileDay: raw.lastReconcileDay,
+    lastReconcileWeek: raw.lastReconcileWeek,
   };
 }
 

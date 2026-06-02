@@ -1,19 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  BarChart3,
   CalendarDays,
   Dumbbell,
+  Flame,
   Menu,
   Newspaper,
   NotebookPen,
   Package,
   Radar as RadarIcon,
+  ShieldAlert,
   SlidersHorizontal,
   Swords,
   Workflow,
+  X,
 } from "lucide-react";
 import type { DayEntry } from "./types";
 import { useStore } from "./lib/useStore";
-import { ACHIEVEMENTS, CAT_MAP, computeStats, rankFromTotalLevel, RANKS, RANK_HEX } from "./lib/rpg";
+import {
+  ACHIEVEMENTS,
+  CAT_MAP,
+  collectActiveDates,
+  computeStats,
+  computeStreak,
+  rankFromTotalLevel,
+  RANKS,
+  RANK_HEX,
+} from "./lib/rpg";
 import type { Repository } from "./lib/repo";
 import {
   ApiRepository,
@@ -35,6 +48,7 @@ import { InventoryView } from "./components/InventoryView";
 import { ProgressView } from "./components/ProgressView";
 import { FeedView } from "./components/FeedView";
 import { DiaryView, DIARY_KINDS } from "./components/DiaryView";
+import { AnalysisView } from "./components/AnalysisView";
 import { NavDrawer } from "./components/NavDrawer";
 import { CanvasView } from "./components/CanvasView";
 import { StatCards } from "./components/StatCards";
@@ -46,12 +60,23 @@ import { Onboarding } from "./components/Onboarding";
 import { ScoreTrend, SleepTrend, TagFrequency } from "./components/Charts";
 import { EditableNote, IdeasIcon, ObsIcon, SummaryIcon } from "./components/NotesPanels";
 
-type View = "system" | "quests" | "stats" | "inventory" | "progress" | "feed" | "canvas" | "journal" | "diary";
+type View =
+  | "system"
+  | "quests"
+  | "stats"
+  | "inventory"
+  | "progress"
+  | "feed"
+  | "canvas"
+  | "journal"
+  | "diary"
+  | "analysis";
 
 // Пункты навигации (без «Система» — она открывается по аватару)
 const TABS: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: "journal", label: "Журнал", icon: <CalendarDays size={17} /> },
   { id: "diary", label: "Дневник", icon: <NotebookPen size={17} /> },
+  { id: "analysis", label: "Анализ", icon: <BarChart3 size={17} /> },
   { id: "quests", label: "Квесты", icon: <Swords size={17} /> },
   { id: "stats", label: "Статы", icon: <RadarIcon size={17} /> },
   { id: "inventory", label: "Инвентарь", icon: <Package size={17} /> },
@@ -163,6 +188,7 @@ function AppShell({
     () => (st ? computeStats(st.categoryXp, st.inventory, st.equipped) : null),
     [st],
   );
+  const streak = useMemo(() => (st ? computeStreak(collectActiveDates(st)) : null), [st]);
 
   const feedShare = st?.profile.feedEnabled ?? false;
   const postFeed = useCallback(
@@ -235,7 +261,7 @@ function AppShell({
     [store, token],
   );
 
-  if (!store.ready || !st || !stats || !store.active) return <BootSplash />;
+  if (!store.ready || !st || !stats || !streak || !store.active) return <BootSplash />;
 
   const active = store.active;
   const rank = rankFromTotalLevel(stats.totalLevel);
@@ -326,6 +352,7 @@ function AppShell({
               profile={st.profile}
               avatar={user.avatar}
               stats={stats}
+              streak={streak}
               quests={st.quests}
               equipped={st.equipped}
               inventory={st.inventory}
@@ -338,6 +365,8 @@ function AppShell({
           {view === "diary" && (
             <DiaryView diary={st.diary} onAdd={handleAddDiary} onRemove={store.removeDiaryEntry} />
           )}
+
+          {view === "analysis" && <AnalysisView months={st.months} />}
 
           {view === "quests" && (
             <QuestsView quests={st.quests} onAdd={store.addQuest} onRemove={store.removeQuest} onToggle={store.toggleQuest} />
@@ -377,6 +406,20 @@ function AppShell({
           {view === "journal" && (
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-bold"
+                  style={{
+                    borderColor: streak.current > 0 ? "rgba(251,124,58,0.4)" : "rgba(255,255,255,0.1)",
+                    background: streak.current > 0 ? "rgba(251,124,58,0.12)" : "rgba(255,255,255,0.04)",
+                    color: streak.current > 0 ? "#fb923c" : "#8a9bc7",
+                  }}
+                  title={`Серия: ${streak.current} дн. подряд · рекорд ${streak.longest}`}
+                >
+                  <Flame size={16} /> {streak.current}
+                  <span className="hidden text-xs font-normal text-ink-500 sm:inline">
+                    · рекорд {streak.longest}
+                  </span>
+                </span>
                 <select
                   value={st.activeMonthId}
                   onChange={(e) => store.setActiveId(e.target.value)}
@@ -466,6 +509,30 @@ function AppShell({
         name={st.profile.name}
         onFinish={() => store.patchProfile({ onboarded: true })}
       />
+
+      {store.penaltyNotice && store.penaltyNotice.length > 0 && (
+        <div className="fixed inset-x-0 bottom-4 z-[70] flex justify-center px-4">
+          <div className="flex w-full max-w-md items-start gap-3 rounded-xl border border-rose-400/40 bg-ink-900/95 p-4 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/15 text-rose-300">
+              <ShieldAlert size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-sm font-bold text-rose-200">
+                Сгорели ставки: −{store.penaltyNotice.reduce((a, p) => a + p.amount, 0)} XP
+              </div>
+              <div className="mt-0.5 text-xs text-ink-400">
+                {store.penaltyNotice.length} провал(ов) по квестам со ставкой. Не упускай их сегодня.
+              </div>
+            </div>
+            <button
+              onClick={store.dismissPenalty}
+              className="shrink-0 rounded-lg p-1 text-ink-400 transition hover:bg-white/8 hover:text-white"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import {
   rankFromTotalLevel,
   systemQuote,
 } from "../lib/rpg";
-import type { Stats } from "../lib/rpg";
+import type { Stats, StreakInfo } from "../lib/rpg";
 import { SystemPanel, StatBar } from "./SystemPanel";
 import { Avatar } from "./Avatar";
 
@@ -18,6 +18,7 @@ interface Props {
   profile: Profile;
   avatar?: string | null;
   stats: Stats;
+  streak: StreakInfo;
   quests: Quest[];
   equipped: Partial<Record<GearSlot, string>>;
   inventory: GearItem[];
@@ -26,7 +27,7 @@ interface Props {
   onEditProfile: () => void;
 }
 
-export function SystemHub({ profile, avatar, stats, quests, equipped, inventory, onToggleQuest, onNav, onEditProfile }: Props) {
+export function SystemHub({ profile, avatar, stats, streak, quests, equipped, inventory, onToggleQuest, onNav, onEditProfile }: Props) {
   const rank = rankFromTotalLevel(stats.totalLevel);
   const rankHex = RANK_HEX[rank];
   const daily = quests.filter((q) => q.period === "daily");
@@ -67,12 +68,19 @@ export function SystemHub({ profile, avatar, stats, quests, equipped, inventory,
             <div>
               <div className="text-xs uppercase tracking-[0.25em] text-sys-cyan">Охотник</div>
               <h1 className="font-display text-2xl font-black text-ink-100 sm:text-3xl">{profile.name}</h1>
-              <div className="mt-1 flex items-center gap-3 text-sm text-ink-300">
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-ink-300">
                 <span className="flex items-center gap-1">
                   <Swords size={14} className="text-sys-blue" /> Ур. {stats.totalLevel}
                 </span>
                 <span className="flex items-center gap-1 font-display font-bold text-sys-gold">
                   <Flame size={14} /> {stats.power} PWR
+                </span>
+                <span
+                  className="flex items-center gap-1 font-display font-bold"
+                  style={{ color: streak.current > 0 ? "#fb7c3a" : "#5b6e9e" }}
+                  title="Серия активных дней подряд"
+                >
+                  <Flame size={14} /> {streak.current} 🔥
                 </span>
               </div>
             </div>

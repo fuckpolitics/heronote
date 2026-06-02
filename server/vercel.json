@@ -9,6 +9,7 @@
   "rewrites": [
     { "source": "/auth/:path*", "destination": "/api/auth/:path*" },
     { "source": "/state", "destination": "/api/state" },
+    { "source": "/feed/react", "destination": "/api/feed/react" },
     { "source": "/feed", "destination": "/api/feed" }
   ]
 }

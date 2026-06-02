@@ -151,6 +151,8 @@ export interface Quest {
   category: CategoryKey;
   period: QuestPeriod;
   xp: number;
+  /** Ставка: XP, которые сгорают, если квест не выполнен за период (0 — без штрафа) */
+  stake?: number;
   /** Ключи периодов, когда квест был выполнен: «2026-06-01» или «2026-W23» */
   completions: string[];
   createdAt: string;
@@ -233,4 +235,8 @@ export interface AppState {
   trackers: Tracker[];
   canvas: CanvasData;
   diary: DiaryEntry[];
+  /** Дата последней сверки штрафов по ежедневным квестам (ISO «2026-06-01») */
+  lastReconcileDay?: string;
+  /** Неделя последней сверки штрафов по еженедельным квестам («2026-W23») */
+  lastReconcileWeek?: string;
 }

@@ -1,5 +1,6 @@
 import type {
   AchievementDef,
+  AppState,
   CategoryKey,
   GearItem,
   GearSlot,
@@ -163,6 +164,140 @@ export function periodKey(period: QuestPeriod): string {
 
 export function isQuestDone(quest: Quest): boolean {
   return quest.completions.includes(periodKey(quest.period));
+}
+
+/** Сдвиг ISO-даты «YYYY-MM-DD» на n дней. */
+export function shiftDayKey(key: string, n: number): string {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dayKeyNow(dt);
+}
+
+/** Собирает «активные дни» (ISO-даты): заполненные дни журнала + дни с выполненными ежедневными квестами. */
+export function collectActiveDates(state: AppState): Set<string> {
+  const set = new Set<string>();
+  for (const m of state.months) {
+    for (const d of m.days) {
+      if (d.values && Object.keys(d.values).length > 0) {
+        set.add(`${m.id}-${String(d.day).padStart(2, "0")}`);
+      }
+    }
+  }
+  for (const q of state.quests) {
+    if (q.period === "daily") for (const c of q.completions) set.add(c);
+  }
+  return set;
+}
+
+export interface StreakInfo {
+  current: number;
+  longest: number;
+  /** Активен ли стрик сегодня (сегодня уже отмечен) */
+  activeToday: boolean;
+}
+
+/**
+ * Считает стрик по набору «активных дней» (ISO-даты).
+ * Текущий стрик тянется до сегодня или вчера (день ещё можно «спасти»).
+ */
+export function computeStreak(activeDates: Iterable<string>): StreakInfo {
+  const set = new Set(activeDates);
+  if (set.size === 0) return { current: 0, longest: 0, activeToday: false };
+
+  // самый длинный стрик
+  const sorted = [...set].sort();
+  let longest = 0;
+  let run = 0;
+  let prev: string | null = null;
+  for (const day of sorted) {
+    if (prev && shiftDayKey(prev, 1) === day) run++;
+    else run = 1;
+    longest = Math.max(longest, run);
+    prev = day;
+  }
+
+  // текущий стрик
+  const today = dayKeyNow();
+  const yesterday = shiftDayKey(today, -1);
+  const activeToday = set.has(today);
+  let current = 0;
+  let cursor = activeToday ? today : set.has(yesterday) ? yesterday : null;
+  while (cursor && set.has(cursor)) {
+    current++;
+    cursor = shiftDayKey(cursor, -1);
+  }
+  return { current, longest, activeToday };
+}
+
+// ——— Штрафы за невыполненные квесты со ставкой ———
+
+export interface PenaltyItem {
+  questTitle: string;
+  category: CategoryKey;
+  amount: number;
+  period: string;
+}
+
+export interface ReconcileResult {
+  categoryXp: Record<CategoryKey, number>;
+  lastReconcileDay: string;
+  lastReconcileWeek: string;
+  penalties: PenaltyItem[];
+}
+
+/**
+ * Начисляет штрафы за пропущенные периоды по квестам со ставкой.
+ * Чисто (не мутирует вход). Первый запуск (маркеры пусты) штрафов не даёт —
+ * только фиксирует точку отсчёта, чтобы не наказывать за прошлое.
+ */
+export function reconcilePenalties(
+  quests: Quest[],
+  categoryXp: Record<CategoryKey, number>,
+  lastReconcileDay: string | undefined,
+  lastReconcileWeek: string | undefined,
+): ReconcileResult {
+  const xp = { ...categoryXp };
+  const penalties: PenaltyItem[] = [];
+  const today = dayKeyNow();
+  const yesterday = shiftDayKey(today, -1);
+  const curWeek = weekKeyNow();
+
+  const dailyStaked = quests.filter((q) => q.period === "daily" && (q.stake ?? 0) > 0);
+  const weeklyStaked = quests.filter((q) => q.period === "weekly" && (q.stake ?? 0) > 0);
+
+  // Ежедневные: обрабатываем все полностью прошедшие дни после последней сверки
+  if (lastReconcileDay) {
+    let cursor = shiftDayKey(lastReconcileDay, 1);
+    let guard = 0;
+    while (cursor <= yesterday && guard < 90) {
+      for (const q of dailyStaked) {
+        if (!q.completions.includes(cursor)) {
+          const amount = Math.min(q.stake ?? 0, xp[q.category] ?? 0);
+          if (amount > 0) {
+            xp[q.category] = Math.max(0, (xp[q.category] ?? 0) - amount);
+            penalties.push({ questTitle: q.title, category: q.category, amount, period: cursor });
+          }
+        }
+      }
+      cursor = shiftDayKey(cursor, 1);
+      guard++;
+    }
+  }
+
+  // Еженедельные: штрафуем предыдущую отслеженную неделю, если она закрылась
+  if (lastReconcileWeek && lastReconcileWeek !== curWeek) {
+    for (const q of weeklyStaked) {
+      if (!q.completions.includes(lastReconcileWeek)) {
+        const amount = Math.min(q.stake ?? 0, xp[q.category] ?? 0);
+        if (amount > 0) {
+          xp[q.category] = Math.max(0, (xp[q.category] ?? 0) - amount);
+          penalties.push({ questTitle: q.title, category: q.category, amount, period: lastReconcileWeek });
+        }
+      }
+    }
+  }
+
+  return { categoryXp: xp, lastReconcileDay: yesterday, lastReconcileWeek: curWeek, penalties };
 }
 
 // ——— Шаблоны квестов ———

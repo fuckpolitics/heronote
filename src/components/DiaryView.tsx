@@ -1,6 +1,23 @@
-import { useState } from "react";
-import { Plus, Trash2, Globe, Lock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus, Trash2, Globe, Lock, Hash, X } from "lucide-react";
 import type { DiaryEntry, DiaryKind } from "../types";
+
+const TAG_RE = /#[\p{L}\p{N}_]+/gu;
+
+/** Извлекает хэштеги (#тег) из текста, в нижнем регистре, без дублей. */
+export function extractTags(text: string): string[] {
+  const found = text.match(TAG_RE) ?? [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of found) {
+    const tag = t.toLowerCase();
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      out.push(tag);
+    }
+  }
+  return out;
+}
 
 interface Props {
   diary: DiaryEntry[];
@@ -23,16 +40,36 @@ export function DiaryView({ diary, onAdd, onRemove }: Props) {
   const [kind, setKind] = useState<DiaryKind>("victory");
   const [text, setText] = useState("");
   const [shared, setShared] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const meta = KIND_MAP[kind];
-  const entries = diary
-    .filter((d) => d.kind === kind)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const kindEntries = useMemo(
+    () => diary.filter((d) => d.kind === kind).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [diary, kind],
+  );
+
+  // все теги внутри текущего раздела
+  const allTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of kindEntries) {
+      for (const t of extractTags(e.text)) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [kindEntries]);
+
+  const entries = activeTag
+    ? kindEntries.filter((e) => extractTags(e.text).includes(activeTag))
+    : kindEntries;
 
   const submit = () => {
     if (!text.trim()) return;
     onAdd(kind, text, shared);
     setText("");
+  };
+
+  const selectKind = (k: DiaryKind) => {
+    setKind(k);
+    setActiveTag(null);
   };
 
   return (
@@ -50,7 +87,7 @@ export function DiaryView({ diary, onAdd, onRemove }: Props) {
           return (
             <button
               key={k.key}
-              onClick={() => setKind(k.key)}
+              onClick={() => selectKind(k.key)}
               className="flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition"
               style={
                 on
@@ -84,7 +121,7 @@ export function DiaryView({ diary, onAdd, onRemove }: Props) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={meta.hint}
+          placeholder={`${meta.hint}\nИспользуй #хэштеги, чтобы группировать записи.`}
           rows={3}
           className="input resize-none"
           onKeyDown={(e) => {
@@ -114,6 +151,37 @@ export function DiaryView({ diary, onAdd, onRemove }: Props) {
         </div>
       </div>
 
+      {/* Фильтр по хэштегам */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {allTags.map(([tag, count]) => {
+            const on = activeTag === tag;
+            return (
+              <button
+                key={tag}
+                onClick={() => setActiveTag(on ? null : tag)}
+                className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                  on
+                    ? "border-sys-cyan/50 bg-sys-cyan/15 text-white"
+                    : "border-white/8 bg-white/4 text-ink-300 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                {tag}
+                <span className="tabular-nums text-ink-500">{count}</span>
+              </button>
+            );
+          })}
+          {activeTag && (
+            <button
+              onClick={() => setActiveTag(null)}
+              className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-ink-400 transition hover:text-white"
+            >
+              <X size={12} /> сбросить
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Список записей */}
       <div className="space-y-2.5">
         {entries.length === 0 && (
@@ -126,6 +194,20 @@ export function DiaryView({ diary, onAdd, onRemove }: Props) {
             <span className="mt-0.5 text-xl">{meta.icon}</span>
             <div className="min-w-0 flex-1">
               <p className="whitespace-pre-wrap break-words text-sm text-ink-100">{e.text}</p>
+              {extractTags(e.text).length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {extractTags(e.text).map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setActiveTag(tag)}
+                      className="flex items-center gap-0.5 rounded-full bg-sys-cyan/10 px-2 py-0.5 text-xs text-sys-cyan transition hover:bg-sys-cyan/20"
+                    >
+                      <Hash size={10} />
+                      {tag.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="mt-1.5 flex items-center gap-2 text-xs text-ink-500">
                 <span>{new Date(e.createdAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 {e.shared && (
