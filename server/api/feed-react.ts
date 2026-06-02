@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { prisma } from "../_lib/prisma";
-import { auth, body, cors } from "../_lib/http";
+import { prisma } from "./_lib/prisma";
+import { auth, body, cors } from "./_lib/http";
 
 /** Разрешённый набор реакций — фиксированный, чтобы не превращать ленту в свалку. */
 const ALLOWED = ["🔥", "💪", "👏", "⚡", "❤️"];
