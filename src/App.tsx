@@ -183,6 +183,11 @@ function AppShell({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
 
+  // Любая страница открывается с самого верха
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
+
   const st = store.state;
   const stats = useMemo(
     () => (st ? computeStats(st.categoryXp, st.inventory, st.equipped) : null),

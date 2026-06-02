@@ -40,6 +40,14 @@ body,
   height: 100%;
 }
 
+html,
+body {
+  /* страница не должна листаться за свои пределы по горизонтали.
+     clip (а не hidden) — чтобы не ломать sticky-шапку и window.scrollTo */
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);

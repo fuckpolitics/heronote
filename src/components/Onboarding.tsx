@@ -25,7 +25,7 @@ export function Onboarding({ open, name, onFinish }: Props) {
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="sys-panel w-full max-w-lg overflow-hidden"
+            className="sys-panel max-h-[90dvh] w-full max-w-lg overflow-y-auto overflow-x-hidden"
             initial={{ scale: 0.95, y: 16 }}
             animate={{ scale: 1, y: 0 }}
             transition={{ type: "spring", damping: 24, stiffness: 300 }}
