@@ -45,6 +45,22 @@ export function useStore(repo: Repository) {
     setState((s) => (s ? fn(s) : s));
   }, []);
 
+  // Текущий месяц создаётся автоматически по дате и становится активным
+  useEffect(() => {
+    if (!state) return;
+    const now = new Date();
+    const curId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    if (state.months.some((m) => m.id === curId)) return;
+    update((s) => {
+      const fresh = createMonth(now);
+      return {
+        ...s,
+        months: [fresh, ...s.months].sort((a, b) => b.id.localeCompare(a.id)),
+        activeMonthId: fresh.id,
+      };
+    });
+  }, [state?.months, update]);
+
   const active = useMemo(() => {
     if (!state) return null;
     return state.months.find((m) => m.id === state.activeMonthId) ?? state.months[0];

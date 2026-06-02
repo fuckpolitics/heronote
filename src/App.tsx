@@ -6,7 +6,6 @@ import {
   Newspaper,
   NotebookPen,
   Package,
-  Plus,
   Radar as RadarIcon,
   SlidersHorizontal,
   Swords,
@@ -260,7 +259,11 @@ function AppShell({
             <Menu size={20} />
           </button>
 
-          <div className="flex min-w-0 items-center gap-3">
+          <button
+            onClick={() => setView("journal")}
+            title="На главную (журнал)"
+            className="flex min-w-0 items-center gap-3 text-left transition hover:opacity-90"
+          >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sys-blue to-sys-purple text-white shadow-[0_0_22px_-6px_rgba(47,107,255,0.8)] sm:h-11 sm:w-11">
               <Swords size={20} />
             </div>
@@ -274,7 +277,7 @@ function AppShell({
                 · ур. {stats.totalLevel}
               </p>
             </div>
-          </div>
+          </button>
 
           {/* Десктоп-навигация */}
           <nav className="mx-auto hidden gap-1 lg:flex">
@@ -392,14 +395,6 @@ function AppShell({
                 >
                   <SlidersHorizontal size={16} />
                   <span className="hidden sm:inline">Поля</span>
-                </button>
-                <button
-                  onClick={store.addMonth}
-                  title="Новый месяц"
-                  className="btn-sys flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
-                >
-                  <Plus size={16} />
-                  <span className="hidden sm:inline">Месяц</span>
                 </button>
               </div>
               <StatCards month={active} />
