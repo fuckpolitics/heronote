@@ -40,9 +40,9 @@ export function AuthScreen({ onAuthed }: Props) {
             ⚔️
           </div>
           <div>
-            <div className="font-display text-xl font-black uppercase tracking-[0.2em] text-white glow-text">System</div>
+            <div className="font-display text-xl font-black uppercase tracking-[0.2em] text-white glow-text">Heronote</div>
             <div className="text-xs uppercase tracking-[0.25em] text-sys-cyan">
-              {mode === "login" ? "вход в систему" : "пробуждение охотника"}
+              {mode === "login" ? "вход" : "новый герой"}
             </div>
           </div>
         </div>

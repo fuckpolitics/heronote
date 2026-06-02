@@ -4,6 +4,7 @@ import type {
   CanvasNode,
   CategoryKey,
   DayEntry,
+  DiaryKind,
   FieldDef,
   GearSlot,
   MonthData,
@@ -319,6 +320,27 @@ export function useStore(repo: Repository) {
     [update],
   );
 
+  // ——— Дневник ———
+  const addDiaryEntry = useCallback(
+    (kind: DiaryKind, text: string, shared: boolean) =>
+      update((s) => {
+        const clean = text.trim();
+        if (!clean) return s;
+        return {
+          ...s,
+          diary: [
+            { id: uid(), kind, text: clean, createdAt: new Date().toISOString(), shared },
+            ...s.diary,
+          ],
+        };
+      }),
+    [update],
+  );
+  const removeDiaryEntry = useCallback(
+    (id: string) => update((s) => ({ ...s, diary: s.diary.filter((d) => d.id !== id) })),
+    [update],
+  );
+
   const reset = useCallback(() => {
     const fresh = createInitialState();
     fresh.profile.onboarded = false;
@@ -357,6 +379,8 @@ export function useStore(repo: Repository) {
     removeNode,
     addEdge,
     removeEdge,
+    addDiaryEntry,
+    removeDiaryEntry,
     reset,
   };
 }

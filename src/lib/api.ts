@@ -1,5 +1,5 @@
 import type { AppState } from "../types";
-import type { Repository } from "./repo";
+import { migrate, type Repository } from "./repo";
 import { createInitialState } from "../data/factory";
 
 /**
@@ -131,7 +131,8 @@ export class ApiRepository implements Repository {
         if (this.accountName) fresh.profile.name = this.accountName;
         return fresh;
       }
-      return data;
+      // нормализуем — добавляем недостающие поля (diary и т.п.) из дефолта
+      return migrate(data);
     } catch (e) {
       return this.handle(e);
     }

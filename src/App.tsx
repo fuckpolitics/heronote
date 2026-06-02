@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   Dumbbell,
-  LayoutDashboard,
+  Menu,
   Newspaper,
+  NotebookPen,
   Package,
   Plus,
   Radar as RadarIcon,
-  Settings,
   SlidersHorizontal,
   Swords,
   Workflow,
@@ -35,6 +35,8 @@ import { StatsView } from "./components/StatsView";
 import { InventoryView } from "./components/InventoryView";
 import { ProgressView } from "./components/ProgressView";
 import { FeedView } from "./components/FeedView";
+import { DiaryView, DIARY_KINDS } from "./components/DiaryView";
+import { NavDrawer } from "./components/NavDrawer";
 import { CanvasView } from "./components/CanvasView";
 import { StatCards } from "./components/StatCards";
 import { DayList } from "./components/DayList";
@@ -45,18 +47,21 @@ import { Onboarding } from "./components/Onboarding";
 import { ScoreTrend, SleepTrend, TagFrequency } from "./components/Charts";
 import { EditableNote, IdeasIcon, ObsIcon, SummaryIcon } from "./components/NotesPanels";
 
-type View = "system" | "quests" | "stats" | "inventory" | "progress" | "feed" | "canvas" | "journal";
+type View = "system" | "quests" | "stats" | "inventory" | "progress" | "feed" | "canvas" | "journal" | "diary";
 
+// Пункты навигации (без «Система» — она открывается по аватару)
 const TABS: { id: View; label: string; icon: React.ReactNode }[] = [
-  { id: "system", label: "Система", icon: <LayoutDashboard size={17} /> },
+  { id: "journal", label: "Журнал", icon: <CalendarDays size={17} /> },
+  { id: "diary", label: "Дневник", icon: <NotebookPen size={17} /> },
   { id: "quests", label: "Квесты", icon: <Swords size={17} /> },
   { id: "stats", label: "Статы", icon: <RadarIcon size={17} /> },
   { id: "inventory", label: "Инвентарь", icon: <Package size={17} /> },
   { id: "progress", label: "Прогресс", icon: <Dumbbell size={17} /> },
   { id: "feed", label: "Лента", icon: <Newspaper size={17} /> },
   { id: "canvas", label: "Карта", icon: <Workflow size={17} /> },
-  { id: "journal", label: "Журнал", icon: <CalendarDays size={17} /> },
 ];
+
+const DIARY_META = Object.fromEntries(DIARY_KINDS.map((k) => [k.key, k]));
 
 export default function App() {
   const [token, setTokenState] = useState<string | null>(getToken());
@@ -147,11 +152,12 @@ function AppShell({
   onUpdateAccount: (patch: { name?: string; avatar?: string | null }) => Promise<void>;
 }) {
   const store = useStore(repo);
-  const [view, setView] = useState<View>("system");
+  const [view, setView] = useState<View>("journal");
   const [editing, setEditing] = useState<DayEntry | null>(null);
   const [open, setOpen] = useState(false);
   const [fieldsOpen, setFieldsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const st = store.state;
   const stats = useMemo(
@@ -210,6 +216,26 @@ function AppShell({
     [store, postFeed, st?.claimedAchievements],
   );
 
+  const handleAddDiary = useCallback(
+    (kind: "victory" | "gratitude" | "insight", text: string, shared: boolean) => {
+      store.addDiaryEntry(kind, text, shared);
+      if (shared) {
+        const meta = DIARY_META[kind];
+        // Запись из дневника публикуется по явному выбору пользователя
+        feedApi
+          .post(token, {
+            type: "diary",
+            title: text.trim().slice(0, 180),
+            detail: meta?.label,
+            icon: meta?.icon,
+            color: meta?.hex,
+          })
+          .catch(() => {});
+      }
+    },
+    [store, token],
+  );
+
   if (!store.ready || !st || !stats || !store.active) return <BootSplash />;
 
   const active = store.active;
@@ -224,13 +250,22 @@ function AppShell({
       <div className="app-bg" />
 
       <header className="sticky top-0 z-30 border-b border-white/8 bg-ink-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2.5 px-4 py-3 sm:px-6">
-          <div className="mr-auto flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sys-blue to-sys-purple text-white shadow-[0_0_22px_-4px_rgba(47,107,255,0.8)]">
-              <Swords size={22} />
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+          {/* Бургер — только мобильный */}
+          <button
+            onClick={() => setNavOpen(true)}
+            title="Меню"
+            className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 text-ink-200 transition hover:bg-white/10 lg:hidden"
+          >
+            <Menu size={20} />
+          </button>
+
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sys-blue to-sys-purple text-white shadow-[0_0_22px_-6px_rgba(47,107,255,0.8)] sm:h-11 sm:w-11">
+              <Swords size={20} />
             </div>
             <div className="min-w-0">
-              <h1 className="font-display text-lg font-black uppercase tracking-[0.18em] text-white glow-text">System</h1>
+              <h1 className="font-display text-lg font-black uppercase tracking-[0.18em] text-white">Heronote</h1>
               <p className="hidden text-xs text-ink-400 sm:block">
                 {st.profile.name} · ранг{" "}
                 <span style={{ color: RANK_HEX[rank] }} className="font-bold">
@@ -241,63 +276,16 @@ function AppShell({
             </div>
           </div>
 
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            {view === "journal" && (
-              <>
-                <select
-                  value={st.activeMonthId}
-                  onChange={(e) => store.setActiveId(e.target.value)}
-                  className="input min-w-0 flex-1 cursor-pointer py-2 pr-8 text-sm font-medium sm:w-auto sm:flex-none"
-                >
-                  {st.months.map((m) => (
-                    <option key={m.id} value={m.id} className="bg-ink-900">
-                      {m.title}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => setFieldsOpen(true)}
-                  title="Настроить поля"
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-ink-200 transition hover:bg-white/10"
-                >
-                  <SlidersHorizontal size={16} />
-                  <span className="hidden sm:inline">Поля</span>
-                </button>
-                <button
-                  onClick={store.addMonth}
-                  title="Новый месяц"
-                  className="btn-sys flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
-                >
-                  <Plus size={16} />
-                  <span className="hidden sm:inline">Месяц</span>
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setSettingsOpen(true)}
-              title="Профиль и аватар"
-              className="shrink-0 rounded-full transition hover:opacity-80"
-            >
-              <Avatar value={user.avatar} name={st.profile.name} size={36} ring={RANK_HEX[rank]} />
-            </button>
-            <button
-              onClick={() => setSettingsOpen(true)}
-              title="Настройки"
-              className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-white/8 hover:text-white"
-            >
-              <Settings size={18} />
-            </button>
-          </div>
-
-          <nav className="-mb-3 flex w-full gap-1 overflow-x-auto pt-1">
+          {/* Десктоп-навигация */}
+          <nav className="mx-auto hidden gap-1 lg:flex">
             {TABS.map((t) => {
               const activeTab = view === t.id;
               return (
                 <button
                   key={t.id}
                   onClick={() => setView(t.id)}
-                  className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 font-ui text-sm font-semibold uppercase tracking-wide transition ${
-                    activeTab ? "border-sys-cyan text-white glow-text" : "border-transparent text-ink-400 hover:text-ink-200"
+                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 font-ui text-sm font-semibold transition ${
+                    activeTab ? "bg-sys-blue/20 text-white ring-1 ring-sys-blue/40" : "text-ink-400 hover:bg-white/6 hover:text-ink-100"
                   }`}
                 >
                   {t.icon}
@@ -306,8 +294,27 @@ function AppShell({
               );
             })}
           </nav>
+
+          {/* Аватар → страница «Система» */}
+          <button
+            onClick={() => setView("system")}
+            title="Профиль"
+            className={`ml-auto shrink-0 rounded-full transition hover:opacity-80 lg:ml-0 ${
+              view === "system" ? "ring-2 ring-sys-cyan/60 ring-offset-2 ring-offset-ink-950" : ""
+            }`}
+          >
+            <Avatar value={user.avatar} name={st.profile.name} size={38} ring={RANK_HEX[rank]} />
+          </button>
         </div>
       </header>
+
+      <NavDrawer
+        open={navOpen}
+        items={TABS}
+        current={view}
+        onSelect={(id) => setView(id as View)}
+        onClose={() => setNavOpen(false)}
+      />
 
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
         <div className="animate-fade-in" key={view}>
@@ -321,7 +328,12 @@ function AppShell({
               inventory={st.inventory}
               onToggleQuest={store.toggleQuest}
               onNav={(v) => setView(v as View)}
+              onEditProfile={() => setSettingsOpen(true)}
             />
+          )}
+
+          {view === "diary" && (
+            <DiaryView diary={st.diary} onAdd={handleAddDiary} onRemove={store.removeDiaryEntry} />
           )}
 
           {view === "quests" && (
@@ -361,6 +373,35 @@ function AppShell({
 
           {view === "journal" && (
             <div className="space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={st.activeMonthId}
+                  onChange={(e) => store.setActiveId(e.target.value)}
+                  className="input min-w-0 flex-1 cursor-pointer py-2 pr-8 text-sm font-medium sm:w-auto sm:flex-none"
+                >
+                  {st.months.map((m) => (
+                    <option key={m.id} value={m.id} className="bg-ink-900">
+                      {m.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setFieldsOpen(true)}
+                  title="Настроить поля"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-ink-200 transition hover:bg-white/10"
+                >
+                  <SlidersHorizontal size={16} />
+                  <span className="hidden sm:inline">Поля</span>
+                </button>
+                <button
+                  onClick={store.addMonth}
+                  title="Новый месяц"
+                  className="btn-sys flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Месяц</span>
+                </button>
+              </div>
               <StatCards month={active} />
               <div className="grid gap-5 lg:grid-cols-3">
                 <div className="lg:col-span-2">
@@ -382,7 +423,7 @@ function AppShell({
         </div>
 
         <footer className="pt-2 text-center text-xs text-ink-600">
-          System v4 · данные через Repository (сейчас localStorage, готово к подключению БД)
+          Heronote · твой путь героя
         </footer>
       </main>
 

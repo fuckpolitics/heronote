@@ -10,7 +10,7 @@ export function BootSplash() {
           </div>
         </div>
         <h1 className="font-display text-2xl font-black uppercase tracking-[0.35em] text-ink-100 glow-text">
-          System
+          Heronote
         </h1>
         <p className="mt-2 font-ui text-sm uppercase tracking-[0.25em] text-sys-cyan animate-pulse-glow">
           Пробуждение…

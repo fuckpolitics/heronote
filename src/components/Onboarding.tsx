@@ -36,7 +36,7 @@ export function Onboarding({ open, name, onFinish }: Props) {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-sys-blue to-sys-purple text-white shadow-[0_0_28px_-4px_rgba(47,107,255,0.9)]">
                 <Swords size={30} />
               </div>
-              <div className="text-xs uppercase tracking-[0.3em] text-sys-cyan">System · уведомление</div>
+              <div className="text-xs uppercase tracking-[0.3em] text-sys-cyan">Heronote · уведомление</div>
               <h2 className="mt-1 font-display text-3xl font-black uppercase text-white glow-text">
                 Ты пробуждён{name ? `, ${name}` : ""}
               </h2>
@@ -66,7 +66,7 @@ export function Onboarding({ open, name, onFinish }: Props) {
                 onClick={onFinish}
                 className="btn-sys flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-display text-lg"
               >
-                Войти в Систему <ChevronsRight size={20} />
+                Начать путь <ChevronsRight size={20} />
               </button>
             </div>
           </motion.div>

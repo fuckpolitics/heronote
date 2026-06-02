@@ -19,7 +19,7 @@ export interface Repository {
 
 const KEY = "sololeveling.v4";
 
-function migrate(raw: Partial<AppState> | null): AppState {
+export function migrate(raw: Partial<AppState> | null): AppState {
   const base = createInitialState();
   if (!raw || !raw.version) return base;
   // мягкое слияние — отсутствующие части берём из дефолта
@@ -39,6 +39,7 @@ function migrate(raw: Partial<AppState> | null): AppState {
     claimedAchievements: raw.claimedAchievements ?? base.claimedAchievements,
     trackers: raw.trackers ?? base.trackers,
     canvas: raw.canvas ?? base.canvas,
+    diary: raw.diary ?? base.diary,
   };
 }
 

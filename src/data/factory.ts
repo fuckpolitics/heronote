@@ -157,5 +157,6 @@ export function createInitialState(): AppState {
     claimedAchievements: [],
     trackers: defaultTrackers(),
     canvas: { nodes: [], edges: [] },
+    diary: [],
   };
 }

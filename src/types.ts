@@ -121,6 +121,20 @@ export interface JournalEntry {
 
 export type Journals = Record<JournalKind, JournalEntry[]>;
 
+// ——— Дневник (победы / благодарности / инсайты) ———
+
+export type DiaryKind = "victory" | "gratitude" | "insight";
+
+export interface DiaryEntry {
+  id: string;
+  kind: DiaryKind;
+  text: string;
+  /** ISO-время создания */
+  createdAt: string;
+  /** Опубликовано ли в общей ленте */
+  shared: boolean;
+}
+
 // ═══════════════ ИГРОВОЙ СЛОЙ (System) ═══════════════
 
 export type CategoryKey = "sport" | "money" | "social" | "relations" | "intellect";
@@ -218,4 +232,5 @@ export interface AppState {
   claimedAchievements: string[];
   trackers: Tracker[];
   canvas: CanvasData;
+  diary: DiaryEntry[];
 }

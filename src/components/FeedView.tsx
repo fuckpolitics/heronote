@@ -27,6 +27,7 @@ const TYPE_LABEL: Record<string, string> = {
   rank: "новый ранг",
   levelup: "новый уровень",
   quest: "квест",
+  diary: "из дневника",
 };
 
 export function FeedView({ token, meId }: Props) {
@@ -51,7 +52,7 @@ export function FeedView({ token, meId }: Props) {
   return (
     <div className="space-y-5">
       <SystemPanel
-        title="Лента Системы"
+        title="Лента героев"
         right={
           <button
             onClick={load}
@@ -64,8 +65,8 @@ export function FeedView({ token, meId }: Props) {
         }
       >
         <p className="text-sm text-ink-400">
-          Достижения и значимые успехи всех охотников Системы. Поднимаешься в ранге или забираешь
-          награду — об этом узнают остальные.
+          Достижения и значимые успехи всех героев. Поднимаешься в ранге, забираешь награду или
+          делишься записью из дневника — об этом узнают остальные.
         </p>
       </SystemPanel>
 

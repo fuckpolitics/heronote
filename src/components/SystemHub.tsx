@@ -1,5 +1,5 @@
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from "recharts";
-import { Check, ChevronRight, Flame, Quote, Swords } from "lucide-react";
+import { Check, ChevronRight, Flame, Quote, Settings, Swords } from "lucide-react";
 import type { CategoryKey, GearSlot, GearItem, Profile, Quest } from "../types";
 import {
   CATEGORIES,
@@ -23,9 +23,10 @@ interface Props {
   inventory: GearItem[];
   onToggleQuest: (id: string) => void;
   onNav: (view: string) => void;
+  onEditProfile: () => void;
 }
 
-export function SystemHub({ profile, avatar, stats, quests, equipped, inventory, onToggleQuest, onNav }: Props) {
+export function SystemHub({ profile, avatar, stats, quests, equipped, inventory, onToggleQuest, onNav, onEditProfile }: Props) {
   const rank = rankFromTotalLevel(stats.totalLevel);
   const rankHex = RANK_HEX[rank];
   const daily = quests.filter((q) => q.period === "daily");
@@ -40,6 +41,13 @@ export function SystemHub({ profile, avatar, stats, quests, equipped, inventory,
       {/* Карточка охотника */}
       <div className="sys-panel relative overflow-hidden p-5 sm:p-6">
         <div className="scanline" />
+        <button
+          onClick={onEditProfile}
+          title="Профиль и настройки"
+          className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-ink-200 transition hover:bg-white/10 hover:text-white"
+        >
+          <Settings size={15} /> <span className="hidden sm:inline">Профиль</span>
+        </button>
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <div

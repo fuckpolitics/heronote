@@ -157,7 +157,7 @@ export function SettingsModal({
                 </div>
 
                 <div>
-                  <div className="mb-2 text-sm font-semibold text-ink-200">Ранги System</div>
+                  <div className="mb-2 text-sm font-semibold text-ink-200">Ранги Heronote</div>
                   <div className="flex flex-wrap gap-1.5">
                     {RANKS.map((r) => (
                       <div
